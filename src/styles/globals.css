@@ -1,0 +1,268 @@
+@import "@fontsource-variable/figtree";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand surface variables */
+    --color-bg: #0c0c0b;
+    --color-surface: #141311;
+    --color-text: #f5f3ef;
+    --color-muted: #a49d91;
+    --color-accent: #c9a961;
+    --grain-opacity: 0.025;
+
+    /* ink color palette (raw RGB channels for opacity compositing) */
+    --color-ink-50: 245 243 239;
+    --color-ink-100: 235 231 224;
+    --color-ink-200: 210 204 194;
+    --color-ink-300: 175 168 156;
+    --color-ink-400: 140 133 120;
+    --color-ink-900: 18 17 15;
+
+    /* shadcn tokens — HSL (stone-based, warm) */
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: 42 22% 95%;
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --radius: 0.625rem;
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    @apply font-sans;
+    /* Prevent horizontal scroll from any element that tries to overflow */
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply font-sans bg-background text-foreground;
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(201, 169, 97, 0.035) 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 100%, rgba(201, 169, 97, 0.02) 0%, transparent 50%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    /* Improve touch scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Avoid bounce layout jumps */
+    overscroll-behavior-y: none;
+  }
+
+  /* Film grain — sangat halus, seperti print paper */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+  }
+
+  /* Respect safe-area on notched devices */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+
+  ::selection {
+    background: rgba(201, 169, 97, 0.3);
+    color: var(--color-text);
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--color-bg); }
+  ::-webkit-scrollbar-thumb { background: #2d2c28; }
+  ::-webkit-scrollbar-thumb:hover { background: #47453f; }
+
+  /* Images & media — fluid by default */
+  img, svg, video, canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Figtree Variable', sans-serif;
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply mx-auto px-5 sm:px-6 md:px-12 lg:px-20 max-w-[1400px];
+  }
+
+  .text-balance { text-wrap: balance; }
+
+  /*
+    text-mega — hero headline.
+    REVISI RESPONSIF:
+    - Mobile baseline diturunkan (2.6rem) agar tidak overflow di layar 320–360px.
+    - Pakai clamp dengan pergerakan halus via vw.
+    - Max tetap 9rem untuk desktop lebar.
+  */
+  .text-mega {
+    font-size: clamp(2.6rem, 9.2vw, 9rem);
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+  }
+
+  /* Elegant primary — champagne gold on dark, outline style */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-3
+           px-5 sm:px-7 py-3 sm:py-3.5
+           font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.2em]
+           transition-all duration-500 ease-refined;
+    background-color: rgb(var(--color-ink-50));
+    color: rgb(var(--color-ink-900));
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent);
+    color: rgb(var(--color-ink-900));
+  }
+
+  /* Ghost — hairline border, subtle hover */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-3
+           px-5 sm:px-7 py-3 sm:py-3.5
+           font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.2em]
+           transition-all duration-500 ease-refined;
+    border: 1px solid rgb(var(--color-ink-400) / 0.25);
+    color: rgb(var(--color-ink-100));
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgb(var(--color-ink-400) / 0.20),
+      transparent
+    );
+  }
+
+  /* Editorial rule line */
+  .hairline {
+    height: 1px;
+    width: 100%;
+    background-color: rgb(var(--color-ink-400) / 0.12);
+  }
+}
+
+@layer utilities {
+  .fade-in-base {
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  /* Hero gradient word — champagne gold sweep, matches editorial palette */
+  .hero-gradient-word {
+    background-image: linear-gradient(
+      110deg,
+      #c9a961 0%,
+      #f5f3ef 35%,
+      #e5d9b6 55%,
+      #c9a961 100%
+    );
+    background-size: 250% 100%;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: hero-gradient-sweep 9s ease-in-out infinite;
+  }
+
+  @keyframes hero-gradient-sweep {
+    0%   { background-position:   0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position:   0% 50%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-gradient-word { animation: none; background-position: 20% 50%; }
+  }
+
+  /* Utility: tap target minimum 44x44 for touch devices */
+  .tap-target { min-width: 44px; min-height: 44px; }
+}
