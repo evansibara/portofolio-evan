@@ -11,3 +11,6 @@ dist-ssr
 *.log
 src.zip
 *.zip
+
+#env
+.env

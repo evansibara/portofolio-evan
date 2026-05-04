@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+// Portfolio components
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import Hero from './components/sections/Hero';
 import TechStack from './components/sections/TechStack';
 import Projects from './components/sections/Projects';
+import Experience from './components/sections/Experience';
+import Certifications from './components/sections/Certifications';
 import ColorBends from './components/ColorBends';
 import GradualBlur from './components/GradualBlur';
 
-export default function App() {
-  // Detect mobile to conditionally render expensive WebGL effects.
-  // Rationale: ColorBends (Three.js shader) dan GradualBlur (multi-layer backdrop-filter)
-  // berat untuk GPU mobile low-end dan bikin lag scroll di HP.
+// Admin components
+import AdminRoute from './components/admin/AdminRoute';
+import AdminDashboard from './components/admin/AdminDashboard';
+
+/* ── Portfolio Page ── */
+function PortfolioPage() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -22,8 +29,6 @@ export default function App() {
 
   return (
     <div className="relative">
-      {/* ── ColorBends Background — hanya render di tablet+.
-            Di HP, pakai static gradient fallback yang ringan. ── */}
       {!isMobile ? (
         <div
           aria-hidden
@@ -71,12 +76,12 @@ export default function App() {
         <Hero />
         <TechStack />
         <Projects />
+        <Experience />
+        <Certifications />
       </main>
 
       <Footer />
 
-      {/* ── GradualBlur BOTTOM — hanya di desktop/tablet.
-            Di HP, multi-layer backdrop-filter bikin scroll lag. ── */}
       {!isMobile && (
         <GradualBlur
           target="page"
@@ -91,5 +96,27 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+/* ── Root App dengan Router ── */
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Portfolio utama */}
+        <Route path="/" element={<PortfolioPage />} />
+
+        {/* Admin dashboard — dilindungi Supabase Auth */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }

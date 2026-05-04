@@ -5,7 +5,6 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   assetsInclude: ['**/*.glb'],
-  // ⬇️ TAMBAHKAN blok optimizeDeps ini
   optimizeDeps: {
     exclude: ['@react-three/rapier', '@dimforge/rapier3d-compat'],
   },
@@ -14,6 +13,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@components': path.resolve(__dirname, './src/components'),
       '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@lib': path.resolve(__dirname, './src/lib'),
       '@data': path.resolve(__dirname, './src/data'),
       '@utils': path.resolve(__dirname, './src/utils'),
       '@assets': path.resolve(__dirname, './src/assets'),

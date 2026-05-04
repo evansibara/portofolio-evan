@@ -3,37 +3,25 @@
  * Lanyard — React Bits official implementation (Three.js + R3F + Rapier)
  *
  * ═══════════════════════════════════════════════════════════════════
- * REVISI TEXTURE MAPPING — fix foto ter-mirror & ter-zoom:
- *
- *   Masalah sebelumnya:
- *     1. `rotation = Math.PI` + `flipY = true` → double-flip membuat
- *        foto ter-mirror horizontal (teks terbaca mundur).
- *     2. Strategi FIT (letterbox) membuat foto portrait tidak mengisi
- *        kartu penuh, wajah terlihat kecil & off-center.
- *
- *   Solusi sekarang:
- *     1. Pakai `rotation = Math.PI` saja, `flipY = false` → orientasi
- *        benar, tidak mirror.
- *     2. Strategi COVER (bukan FIT) dengan offset vertikal ke atas
- *        agar area wajah (bagian atas foto) terbingkai di kartu,
- *        bukan area bawah (tubuh/kaki).
- *
- *   UV range permukaan kartu GLB (hasil inspeksi):
- *     U: 0 → 1.0
- *     V: 0 → 0.757   (BUKAN 0 → 1!)
- *   → kompensasi via `repeat.y` atau `repeat.x` (tergantung rotation).
- *     Setelah rotation 180°, sumbu X dan Y tertukar secara visual,
- *     jadi kompensasi diterapkan pada sumbu yang sesuai.
- *
- *   FACE_FOCUS: parameter 0.0–1.0 menentukan bagian foto mana yang
- *   jadi pusat bingkai. 0.5 = tengah foto, < 0.5 = geser ke atas
- *   (cocok untuk foto full-body, supaya wajah kelihatan).
+ * REVISI RESPONSIF:
+ *   - Wrapper `.lanyard-wrapper` sekarang `overflow: hidden` + width/height
+ *     100% dari parent, sehingga kartu tidak pernah keluar dari container
+ *     kolomnya di Hero.jsx.
+ *   - Anchor tali dipindah ke tengah (x offset 0 alih-alih 0.5 cascade)
+ *     supaya kartu menggantung stabil di pusat kolom pada semua resolusi.
+ *   - Rope length dibuat relatif lebih pendek agar kartu tidak bergoyang
+ *     terlalu jauh ke luar frame.
  * ═══════════════════════════════════════════════════════════════════
  */
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, extend, useFrame } from '@react-three/fiber';
-import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
+import {
+  useGLTF,
+  useTexture,
+  Environment,
+  Lightformer,
+} from '@react-three/drei';
 import {
   BallCollider,
   CuboidCollider,
@@ -50,7 +38,7 @@ import profileImg from '../assets/lanyard/profile.jpg';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
-// Inline CSS injection
+// Inline CSS injection — overflow hidden mencegah canvas keluar container
 const STYLE_ID = 'lanyard-style';
 if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
   const styleEl = document.createElement('style');
@@ -64,8 +52,15 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
       display: flex;
       justify-content: center;
       align-items: center;
+      overflow: hidden;
       transform: scale(1);
       transform-origin: center;
+    }
+    .lanyard-wrapper canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      touch-action: none;
     }
   `;
   document.head.appendChild(styleEl);
@@ -106,36 +101,10 @@ export default function Lanyard({
   bandText = 'EVAN',
   bandTextColor = '#ffffff',
   cardScale = 2.4,
-  /**
-   * FACE_FOCUS — posisi vertikal bagian foto yang jadi pusat bingkai.
-   * 0.0 = paling atas foto (wajah untuk full-body portrait),
-   * 0.5 = tengah foto, 1.0 = paling bawah foto.
-   * Default 0.25 = 25% dari atas (cocok untuk foto full-body dengan
-   * wajah di bagian atas).
-   */
   faceFocus = 0.25,
-  /**
-   * HORIZONTAL_SHIFT — geser foto horizontal di dalam bingkai kartu.
-   * -0.5 = maksimal ke kiri, 0 = tengah, +0.5 = maksimal ke kanan.
-   */
   horizontalShift = 0,
-  /**
-   * TEXTURE_FLIP_Y — kontrol flip vertikal texture.
-   * true = default THREE (image row 0 di UV V=1).
-   * false = image row 0 di UV V=0.
-   * Kalau foto keluar upside-down, toggle ini.
-   */
   textureFlipY = true,
-  /**
-   * TEXTURE_ROTATION — rotasi texture dalam radian.
-   * 0 = tanpa rotasi, Math.PI = 180°, Math.PI/2 = 90° CCW, -Math.PI/2 = 90° CW.
-   * Kalau foto terlihat miring, tweak ini.
-   */
   textureRotation = 0,
-  /**
-   * TEXTURE_MIRROR_X — mirror horizontal texture (jika teks terbaca mundur).
-   * true = mirror, false = normal.
-   */
   textureMirrorX = false,
 }) {
   const [isMobile, setIsMobile] = useState(
@@ -251,29 +220,7 @@ function Band({
   );
 
   // ═══════════════════════════════════════════════════════════════════
-  // UV FIX — texture mapping untuk foto profile:
-  //
-  //   PROBLEM BAR STRIP: sebelumnya repeat.x atau repeat.y di-set > 1
-  //   (misal 1/0.757 = 1.321) untuk kompensasi UV_V_MAX. Dengan
-  //   ClampToEdgeWrapping, sampling di luar [0,1] akan "ngelus" piksel
-  //   edge → muncul bar strip hijau/putih di sisi foto.
-  //
-  //   FIX: repeat selalu ≤ 1, offset ≥ 0. Kompensasi UV_V_MAX dilakukan
-  //   dengan MEMPERBESAR visible area texture (bukan repeat >1), yaitu:
-  //   repeat.y = UV_V_MAX artinya 75.7% tinggi texture ter-map ke
-  //   permukaan kartu. Area ini selalu di dalam UV [0,1] valid range.
-  //
-  //   ORIENTASI: semua kontrol via props `textureFlipY`, `textureRotation`,
-  //   dan `textureMirrorX`. Kalau foto keluar salah orientasi, tinggal
-  //   toggle dari Hero.jsx tanpa edit Lanyard.jsx.
-  //
-  //   Kombinasi orientasi yang perlu dicoba (urutan test rekomendasi):
-  //     A) flipY=true,  rotation=0,  mirrorX=false  → "paling default"
-  //     B) flipY=true,  rotation=Math.PI, mirrorX=false
-  //     C) flipY=false, rotation=0,  mirrorX=false
-  //     D) flipY=true,  rotation=0,  mirrorX=true
-  //     E) flipY=false, rotation=Math.PI, mirrorX=false
-  //     ... dst.
+  // UV FIX — texture mapping untuk foto profile (unchanged)
   // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!profileTex || !profileTex.image) return;
@@ -287,39 +234,28 @@ function Band({
     profileTex.center.set(0.5, 0.5);
     profileTex.rotation = textureRotation;
 
-    // UV range permukaan kartu GLB (hasil inspeksi card.glb):
     const UV_V_MAX = 0.757;
 
     const imgW = profileTex.image.naturalWidth || profileTex.image.width;
     const imgH = profileTex.image.naturalHeight || profileTex.image.height;
 
-    const IMG_ASPECT = imgH / imgW;                // foto
-    const CARD_ASPECT = 1 / UV_V_MAX;              // 1.321 (kartu portrait)
-
-    // Strategi COVER: foto mengisi kartu penuh, crop bagian yang keluar.
-    // repeat selalu ≤ 1 → tidak ada bleeding/bar strip.
+    const IMG_ASPECT = imgH / imgW;
+    const CARD_ASPECT = 1 / UV_V_MAX;
 
     let repeatX, repeatY, offsetX, offsetY;
 
     if (IMG_ASPECT > CARD_ASPECT) {
-      // Foto lebih portrait dari kartu → crop vertikal.
       const visibleV = CARD_ASPECT / IMG_ASPECT;
       repeatX = 1;
       repeatY = visibleV * UV_V_MAX;
 
-      // Offset Y untuk face-focus.
       if (textureFlipY) {
         offsetY = (UV_V_MAX - repeatY) * (1 - faceFocus);
       } else {
         offsetY = (UV_V_MAX - repeatY) * faceFocus;
       }
-      // Offset X = 0 (full lebar foto), tapi bisa digeser sedikit
-      // via horizontalShift kalau user mau fine-tune.
-      // Karena repeatX = 1, tidak ada ruang shift. Shift hanya berefek
-      // jika foto di-crop horizontal (kasus else di bawah).
       offsetX = 0;
     } else {
-      // Foto lebih landscape dari kartu → crop horizontal (center + shift).
       const visibleU = IMG_ASPECT / CARD_ASPECT;
       repeatX = visibleU;
       repeatY = UV_V_MAX;
@@ -330,7 +266,6 @@ function Band({
       offsetY = 0;
     }
 
-    // Mirror horizontal: flip U axis.
     if (textureMirrorX) {
       profileTex.repeat.set(-repeatX, repeatY);
       profileTex.offset.set(offsetX + repeatX, offsetY);
@@ -340,7 +275,14 @@ function Band({
     }
 
     profileTex.needsUpdate = true;
-  }, [profileTex, faceFocus, horizontalShift, textureFlipY, textureRotation, textureMirrorX]);
+  }, [
+    profileTex,
+    faceFocus,
+    horizontalShift,
+    textureFlipY,
+    textureRotation,
+    textureMirrorX,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -390,10 +332,15 @@ function Band({
     if (fixed.current) {
       [j1, j2].forEach((ref) => {
         if (!ref.current.lerped)
-          ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
+          ref.current.lerped = new THREE.Vector3().copy(
+            ref.current.translation()
+          );
         const clampedDistance = Math.max(
           0.1,
-          Math.min(1, ref.current.lerped.distanceTo(ref.current.translation()))
+          Math.min(
+            1,
+            ref.current.lerped.distanceTo(ref.current.translation())
+          )
         );
         ref.current.lerped.lerp(
           ref.current.translation(),
@@ -413,21 +360,26 @@ function Band({
 
   curve.curveType = 'chordal';
 
+  // ═══════════════════════════════════════════════════════════════════
+  // ANCHOR REVISI: group di-centered (x=0) agar kartu menggantung
+  // tepat di tengah container kolom-nya. Segment tali juga dipendekkan
+  // supaya kartu tidak mengayun terlalu jauh keluar frame.
+  // ═══════════════════════════════════════════════════════════════════
   return (
     <>
       <group position={[0, 4, 0]}>
         <RigidBody ref={fixed} {...segmentProps} type="fixed" />
-        <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps}>
+        <RigidBody position={[0.3, 0, 0]} ref={j1} {...segmentProps}>
           <BallCollider args={[0.1]} />
         </RigidBody>
-        <RigidBody position={[1, 0, 0]} ref={j2} {...segmentProps}>
+        <RigidBody position={[0.6, 0, 0]} ref={j2} {...segmentProps}>
           <BallCollider args={[0.1]} />
         </RigidBody>
-        <RigidBody position={[1.5, 0, 0]} ref={j3} {...segmentProps}>
+        <RigidBody position={[0.9, 0, 0]} ref={j3} {...segmentProps}>
           <BallCollider args={[0.1]} />
         </RigidBody>
         <RigidBody
-          position={[2, 0, 0]}
+          position={[1.2, 0, 0]}
           ref={card}
           {...segmentProps}
           type={dragged ? 'kinematicPosition' : 'dynamic'}

@@ -125,111 +125,134 @@ export default function Hero() {
                    pointer-events-none z-[2]"
       />
 
-      {/* Lanyard (desktop only) — tinggi dikurangi agar tidak mendorong konten bawah */}
-      <div
-        data-hero-lanyard
-        aria-hidden
-        className="hidden md:block absolute top-[-40px] right-0 w-[900px] lg:w-[1080px] h-[72vh] opacity-0 pointer-events-auto z-20"
-      >
-        <Lanyard
-          position={[0, 0, 13]}
-          gravity={[0, -40, 0]}
-          fov={18}
-          cardScale={2.4}
-          faceFocus={0.3}
-          horizontalShift={0}
-          textureFlipY={false}
-          textureRotation={0}
-          textureMirrorX={false}
-        />
-      </div>
-
       {/* Vertical rule */}
       <div
         aria-hidden
         className="absolute left-5 sm:left-6 md:left-12 lg:left-20 top-0 bottom-0 w-px bg-ink-400/10 pointer-events-none z-[3]"
       />
 
-      {/* Content */}
+      {/*
+        ═══════════════════════════════════════════════════════════════
+        LAYOUT GRID 2 KOLOM (responsive safe)
+        - Breakpoint < lg (< 1024px): 1 kolom, lanyard HIDDEN
+        - Breakpoint lg (1024–1279px): 2 kolom, lanyard compact di kanan
+        - Breakpoint xl+ (≥ 1280px): 2 kolom, lanyard full size
+        Grid mencegah overlap sepenuhnya — lanyard punya kolomnya sendiri.
+        ═══════════════════════════════════════════════════════════════
+      */}
       <div className="relative px-5 sm:px-6 md:px-12 lg:px-20 z-10">
-        <div className="max-w-[720px]">
-          <div className="mb-5 sm:mb-6 md:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          {/* LEFT COLUMN — text content */}
+          <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-6 max-w-[720px]">
+            <div className="mb-5 sm:mb-6 md:mb-8">
+              <p
+                data-hero-label
+                className="font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.3em] text-ink-400 opacity-0 flex items-center gap-3 sm:gap-4"
+              >
+                <span className="w-8 sm:w-10 h-px bg-gold/60" />
+                Portfolio — MMXXVI
+              </p>
+            </div>
+
+            <h1 className="text-mega font-display font-light leading-[0.95] mb-5 sm:mb-6 md:mb-8 text-ink-50">
+              <span className="block tracking-tightest">
+                <span
+                  data-hero-word
+                  className="inline-block opacity-0 will-change-transform"
+                >
+                  Fullstack
+                </span>
+              </span>
+              <span className="block pb-[0.08em]">
+                <span
+                  data-hero-word
+                  className="inline-block opacity-0 font-display italic hero-gradient-word will-change-transform"
+                  style={{
+                    paddingRight: '0.12em',
+                    paddingLeft: '0.02em',
+                    marginLeft: '-0.02em',
+                  }}
+                >
+                  Developer
+                </span>
+                <span
+                  data-hero-word
+                  className="inline-block opacity-0 text-gold ml-2 sm:ml-4 align-middle will-change-transform"
+                  style={{ fontSize: '0.4em' }}
+                >
+                  ⟶
+                </span>
+              </span>
+            </h1>
+
             <p
-              data-hero-label
-              className="font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.3em] text-ink-400 opacity-0 flex items-center gap-3 sm:gap-4"
+              data-hero-tagline
+              className="text-sm sm:text-base md:text-lg text-ink-200 leading-[1.7] text-balance opacity-0 font-light max-w-[560px] mb-6 md:mb-8"
             >
-              <span className="w-8 sm:w-10 h-px bg-gold/60" />
-              Portfolio — MMXXVI
+              I'm <span className="text-ink-50">{site.name}</span>.{' '}
+              {site.tagline} Shipping production applications with React, Node,
+              and a considered approach to design and craft.
             </p>
+
+            <div className="flex flex-col xs:flex-row sm:flex-row flex-wrap items-stretch xs:items-center sm:items-center gap-3 sm:gap-4">
+              <Magnetic strength={0.15}>
+                <a
+                  data-hero-cta
+                  href="#work"
+                  className="opacity-0 btn-primary w-full xs:w-auto sm:w-auto"
+                >
+                  View selected work
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M5 12h14m0 0l-6-6m6 6l-6 6"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="square"
+                    />
+                  </svg>
+                </a>
+              </Magnetic>
+              <Magnetic strength={0.15}>
+                <a
+                  data-hero-cta
+                  href={`mailto:${site.email}`}
+                  className="opacity-0 btn-ghost w-full xs:w-auto sm:w-auto"
+                >
+                  Get in touch
+                </a>
+              </Magnetic>
+            </div>
           </div>
 
-          <h1 className="text-mega font-display font-light leading-[0.95] mb-5 sm:mb-6 md:mb-8 text-ink-50">
-            <span className="block tracking-tightest">
-              <span
-                data-hero-word
-                className="inline-block opacity-0 will-change-transform"
-              >
-                Fullstack
-              </span>
-            </span>
-            <span className="block pb-[0.08em]">
-              <span
-                data-hero-word
-                className="inline-block opacity-0 font-display italic hero-gradient-word will-change-transform"
-                style={{
-                  paddingRight: '0.12em',
-                  paddingLeft: '0.02em',
-                  marginLeft: '-0.02em',
-                }}
-              >
-                Developer
-              </span>
-              <span
-                data-hero-word
-                className="inline-block opacity-0 text-gold ml-2 sm:ml-4 align-middle will-change-transform"
-                style={{ fontSize: '0.4em' }}
-              >
-                ⟶
-              </span>
-            </span>
-          </h1>
-
-          <p
-            data-hero-tagline
-            className="text-sm sm:text-base md:text-lg text-ink-200 leading-[1.7] text-balance opacity-0 font-light max-w-[560px] mb-6 md:mb-8"
+          {/* RIGHT COLUMN — lanyard (hidden below lg) */}
+          <div
+            data-hero-lanyard
+            aria-hidden
+            className="hidden lg:block lg:col-span-5 xl:col-span-5 2xl:col-span-6 opacity-0 relative"
           >
-            I'm <span className="text-ink-50">{site.name}</span>. {site.tagline}{' '}
-            Shipping production applications with React, Node, and a considered
-            approach to design and craft.
-          </p>
-
-          <div className="flex flex-col xs:flex-row sm:flex-row flex-wrap items-stretch xs:items-center sm:items-center gap-3 sm:gap-4">
-            <Magnetic strength={0.15}>
-              <a
-                data-hero-cta
-                href="#work"
-                className="opacity-0 btn-primary w-full xs:w-auto sm:w-auto"
-              >
-                View selected work
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 12h14m0 0l-6-6m6 6l-6 6"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="square"
-                  />
-                </svg>
-              </a>
-            </Magnetic>
-            <Magnetic strength={0.15}>
-              <a
-                data-hero-cta
-                href={`mailto:${site.email}`}
-                className="opacity-0 btn-ghost w-full xs:w-auto sm:w-auto"
-              >
-                Get in touch
-              </a>
-            </Magnetic>
+            {/*
+              Inner wrapper pakai posisi relatif dengan tinggi responsif.
+              Lanyard hidup di dalam kolomnya sendiri — tidak pernah keluar
+              ke kolom teks.
+            */}
+            <div
+              className="relative w-full
+                         h-[520px] lg:h-[560px] xl:h-[640px] 2xl:h-[720px]
+                         -mt-20 lg:-mt-24 xl:-mt-28
+                         -mr-4 lg:-mr-8 xl:-mr-12"
+            >
+              <Lanyard
+                position={[0, 0, 15]}
+                gravity={[0, -40, 0]}
+                fov={20}
+                cardScale={2.2}
+                faceFocus={0.3}
+                horizontalShift={0}
+                textureFlipY={false}
+                textureRotation={0}
+                textureMirrorX={false}
+              />
+            </div>
           </div>
         </div>
       </div>
