@@ -13,6 +13,7 @@ const MAX_COLORS = 8;
 
 // ── CSS di-inject sekali saja ke <head> ──
 const STYLE_ID = 'color-bends-style';
+// ponytail: inject style once, guard by id
 if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
   const styleEl = document.createElement('style');
   styleEl.id = STYLE_ID;
@@ -22,9 +23,22 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
       width: 100%;
       height: 100%;
       overflow: hidden;
+      pointer-events: none;
+    }
+    .color-bends-container canvas {
+      display: block;
+      pointer-events: none;
     }
   `;
   document.head.appendChild(styleEl);
+} else if (typeof document !== 'undefined') {
+  // Hot-reload guard: update aturan canvas jika style tag lama sudah ada
+  const existing = document.getElementById(STYLE_ID);
+  if (existing && !existing.textContent.includes('color-bends-container canvas')) {
+    existing.textContent += `
+    .color-bends-container canvas { display: block; pointer-events: none; }
+    `;
+  }
 }
 
 const frag = `
@@ -210,7 +224,26 @@ export default function ColorBends({
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
     renderer.domElement.style.display = 'block';
+    renderer.domElement.style.pointerEvents = 'none';
     container.appendChild(renderer.domElement);
+
+    // ponytail: forward wheel events dari canvas ke window — jaminan scroll tetap jalan
+    // pointer-events:none tidak cukup di semua browser untuk compositor-level wheel
+    const forwardWheel = (e) => {
+      // Hanya forward jika bukan dari window itu sendiri (hindari loop)
+      const forwarded = new WheelEvent('wheel', {
+        deltaX: e.deltaX,
+        deltaY: e.deltaY,
+        deltaZ: e.deltaZ,
+        deltaMode: e.deltaMode,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        bubbles: true,
+        cancelable: true,
+      });
+      window.dispatchEvent(forwarded);
+    };
+    renderer.domElement.addEventListener('wheel', forwardWheel, { passive: true });
 
     const clock = new THREE.Clock();
 
@@ -254,6 +287,7 @@ export default function ColorBends({
 
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      renderer.domElement.removeEventListener('wheel', forwardWheel);
       if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
       else window.removeEventListener('resize', handleResize);
       geometry.dispose();

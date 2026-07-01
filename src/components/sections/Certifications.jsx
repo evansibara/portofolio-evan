@@ -14,6 +14,7 @@ import anime from 'animejs';
 import { useInView } from '@hooks/useInView';
 import { supabase } from '@lib/supabase';
 import GlassSurface from '@components/GlassSurface';
+import { lockScroll, unlockScroll } from '@lib/scrollLock';
 
 /* ── Lightbox Modal ── */
 function CertLightbox({ cert, allCerts, onClose, onNav }) {
@@ -51,10 +52,11 @@ function CertLightbox({ cert, allCerts, onClose, onNav }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [currentIdx, allCerts, onClose, onNav]);
 
-  // Lock scroll
+  // Lock scroll — pakai shared ref-counted lock supaya aman
+  // walau ada modal lain yang kebetulan aktif berdekatan waktu.
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    lockScroll();
+    return () => unlockScroll();
   }, []);
 
   const handleOverlayClick = (e) => {

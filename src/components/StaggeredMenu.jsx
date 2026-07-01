@@ -280,9 +280,27 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
       padding: 5.5rem 2rem 2rem 2rem;
       overflow-y: auto;
       z-index: 10;
-      pointer-events: auto;
+      /* FIX — bug "tidak bisa discroll":
+         Sebelumnya pointer-events selalu 'auto' dan panel ini HANYA
+         disembunyikan lewat transform GSAP (xPercent) di useLayoutEffect.
+         Kalau animasi itu gagal jalan tepat waktu / ter-reset (misal karena
+         dependency effect berubah saat scroll), panel yang lebar (min 280px,
+         hingga 40vw) dan setinggi 100% viewport ini tetap ada di posisi
+         defaultnya — tak terlihat (opacity:0) tapi tetap menyerap semua
+         wheel/touch/scroll di area itu lewat overflow-y:auto miliknya sendiri.
+         Sekarang pointer-events & visibility di-nonaktifkan secara default di
+         CSS (tidak bergantung ke JS), dan hanya diaktifkan saat menu benar-benar
+         terbuka lewat [data-open] di bawah. Ini jadi fail-safe: walau GSAP
+         telat / gagal, panel tidak akan pernah memblokir scroll halaman. */
+      pointer-events: none;
+      visibility: hidden;
       opacity: 0;
       border-left: 1px solid rgba(140, 133, 120, 0.1);
+    }
+
+    .staggered-menu-wrapper[data-open] .staggered-menu-panel {
+      pointer-events: auto;
+      visibility: visible;
     }
 
     [data-position='left'] .staggered-menu-panel {
@@ -593,10 +611,19 @@ export const StaggeredMenu = ({
       gsap.set(plusV, { transformOrigin: '50% 50%', rotate: 90 });
       gsap.set(icon, { rotate: 0, transformOrigin: '50% 50%' });
       gsap.set(textInner, { yPercent: 0 });
-      if (toggleBtnRef.current) gsap.set(toggleBtnRef.current, { color: menuButtonColor });
+      // Catatan: warna toggle button SENGAJA tidak di-set di sini lagi.
+      // Sebelumnya `menuButtonColor` ada di dependency array effect ini,
+      // artinya SETIAP KALI status scroll berubah (Navbar mengganti warna
+      // tombol menu saat melewati 30px), seluruh gsap.context() di atas
+      // di-revert() lalu dibangun ulang — termasuk transform xPercent yang
+      // mendorong panel ke luar layar. Reset berulang ini menambah risiko
+      // panel sempat "kembali" ke posisi default sebelum di-set ulang.
+      // Warna toggle button sudah ditangani terpisah oleh useEffect di bawah
+      // (yang memang bereaksi terhadap perubahan menuButtonColor), jadi baris
+      // ini aman dihapus dari sini.
     });
     return () => ctx.revert();
-  }, [menuButtonColor, position]);
+  }, [position]);
 
   const buildOpenTimeline = useCallback(() => {
     const panel = panelRef.current;

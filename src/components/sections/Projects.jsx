@@ -5,6 +5,7 @@ import Magnetic from '@components/ui/Magnetic';
 import GlassSurface from '@components/GlassSurface';
 import { useInView } from '@hooks/useInView';
 import { useProjects } from '@hooks/usePortfolioData';
+import { lockScroll, unlockScroll } from '@lib/scrollLock';
 
 /* ─────────────────────────────────────────────
    PROJECT DETAIL MODAL
@@ -14,10 +15,10 @@ function ProjectModal({ project, onClose }) {
   const cardRef = useRef(null);
   const tech = project?.tech || [];
 
-  // Animate in
+  // Animate in + lock scroll
   useEffect(() => {
     if (!project) return;
-    document.body.style.overflow = 'hidden';
+    lockScroll();
 
     anime({
       targets: overlayRef.current,
@@ -35,7 +36,7 @@ function ProjectModal({ project, onClose }) {
       easing: 'cubicBezier(0.22, 1, 0.36, 1)',
     });
 
-    return () => { document.body.style.overflow = ''; };
+    return () => unlockScroll();
   }, [project]);
 
   const handleClose = useCallback(() => {
@@ -52,8 +53,10 @@ function ProjectModal({ project, onClose }) {
       opacity: [1, 0],
       duration: 300,
       easing: 'easeInQuad',
-      complete: onClose,
     });
+
+   
+    window.setTimeout(onClose, 300);
   }, [onClose]);
 
   // Escape key

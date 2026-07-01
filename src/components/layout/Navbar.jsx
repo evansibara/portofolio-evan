@@ -1,52 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import anime from 'animejs';
-import Magnetic from '@components/ui/Magnetic';
-import GlassSurface from '@components/GlassSurface';
-import StaggeredMenu from '@components/StaggeredMenu';
-import { navLinks, socialLinks, site } from '@data/site';
+import { navLinks, site } from '@data/site';
 
 /**
- * Navbar — HYBRID responsive:
- *
- * - Desktop (≥ 768px / md): classic floating pill navbar.
- *   Logo kiri, nav links (Work, About, Contact) di tengah, tombol "Let's talk"
- *   di kanan. TIDAK pakai tombol Menu/Close — semua langsung terlihat.
- *
- * - Mobile & Tablet kecil (< 768px): pakai StaggeredMenu (React Bits)
- *   dengan hamburger toggle, panel slide-in, dan animasi stagger.
- *
- * Detection pakai window.matchMedia agar rendering adaptif sejak mount
- * (tidak flicker). Listener resize untuk handle orientation change /
- * resize window di dev tools.
+ * Navbar — clean rewrite, no StaggeredMenu / GlassSurface / anime.
+ * Desktop: floating pill, blur backdrop, CSS transitions.
+ * Mobile: hamburger + slide-down drawer.
+ * ponytail: zero external deps, ~100 lines, pure CSS
  */
 export default function Navbar() {
-  const navRef = useRef(null);
   const [scrolled, setScrolled] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return window.matchMedia('(min-width: 768px)').matches;
-  });
+  const [open, setOpen] = useState(false);
+  const drawerRef = useRef(null);
 
-  // Listen for viewport width changes
-  useEffect(() => {
-    const mql = window.matchMedia('(min-width: 768px)');
-    const onChange = (e) => setIsDesktop(e.matches);
-    // addEventListener is the modern method; fallback for older Safari
-    if (mql.addEventListener) {
-      mql.addEventListener('change', onChange);
-    } else {
-      mql.addListener(onChange);
-    }
-    return () => {
-      if (mql.removeEventListener) {
-        mql.removeEventListener('change', onChange);
-      } else {
-        mql.removeListener(onChange);
-      }
-    };
-  }, []);
-
-  // Scroll tracker — shared by both variants
+  // Scroll tracker
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     onScroll();
@@ -54,144 +20,243 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Mount fade-in animation — hanya untuk desktop variant
+  // Close drawer on outside click
   useEffect(() => {
-    if (!isDesktop || !navRef.current) return;
+    if (!open) return;
+    const handler = (e) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
 
-    anime({
-      targets: navRef.current.querySelectorAll('[data-nav-item]'),
-      opacity: [0, 1],
-      translateY: [-10, 0],
-      duration: 1100,
-      delay: anime.stagger(70, { start: 300 }),
-      easing: 'cubicBezier(0.22, 1, 0.36, 1)',
-    });
+  // Close drawer on ESC
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
 
-    anime({
-      targets: navRef.current.querySelector('[data-nav-shell]'),
-      opacity: [0, 1],
-      translateY: [-20, 0],
-      duration: 1200,
-      delay: 200,
-      easing: 'cubicBezier(0.22, 1, 0.36, 1)',
-    });
-  }, [isDesktop]);
-
-  // ───────────────────────────────────────────────────────────
-  //  MOBILE / TABLET — StaggeredMenu
-  // ───────────────────────────────────────────────────────────
-  if (!isDesktop) {
-    const menuItems = navLinks.map((link) => ({
-      label: link.label,
-      link: link.href,
-      ariaLabel: `Go to ${link.label}`,
-    }));
-
-    const menuSocials = socialLinks.map((s) => ({
-      label: s.label,
-      link: s.href,
-      icon: s.icon,
-    }));
-
-    const logoNode = (
-      <a href="#top" className="sm-logo">
-        {site.name}
-        <span className="sm-logo-gold">—</span>
-      </a>
-    );
-
-    return (
-      <div className="fixed top-0 left-0 w-full h-screen pointer-events-none z-50">
-        <StaggeredMenu
-          position="right"
-          items={menuItems}
-          socialItems={menuSocials}
-          displaySocials={true}
-          displayItemNumbering={true}
-          logoNode={logoNode}
-          menuButtonColor={scrolled ? '#c9a961' : '#f5f3ef'}
-          openMenuButtonColor="#f5f3ef"
-          changeMenuColorOnOpen={true}
-          accentColor="#c9a961"
-          colors={['#1a1714', '#2a231c']}
-          closeOnClickAway={true}
-          scrolled={scrolled}
-        />
-      </div>
-    );
-  }
-
-  // ───────────────────────────────────────────────────────────
-  //  DESKTOP — classic floating pill navbar
-  // ───────────────────────────────────────────────────────────
   return (
-    <div
-      ref={navRef}
-      className="fixed top-6 inset-x-12 lg:inset-x-20 z-50 pointer-events-none"
-    >
-      <div
-        data-nav-shell
-        className="opacity-0 pointer-events-auto mx-auto max-w-[1400px] transition-all duration-700 ease-refined"
-      >
-        <GlassSurface
-          width="100%"
-          height="100%"
-          borderRadius={9999}
-          brightness={scrolled ? 58 : 50}
-          opacity={0.92}
-          blur={scrolled ? 14 : 11}
-          backgroundOpacity={scrolled ? 0.22 : 0.14}
-          saturation={scrolled ? 1.4 : 1.2}
-          displace={scrolled ? 1.5 : 1}
-          distortionScale={-160}
-          redOffset={0}
-          greenOffset={8}
-          blueOffset={18}
-          mixBlendMode="difference"
-          className="transition-all duration-700 ease-refined"
-          style={{ width: '100%', height: 'auto' }}
+    <>
+      <style>{`
+        .nb-root {
+          position: fixed;
+          top: 1.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          width: calc(100% - 3rem);
+          max-width: 900px;
+          pointer-events: none;
+        }
+        .nb-pill {
+          pointer-events: auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 1.5rem;
+          border-radius: 9999px;
+          border: 1px solid rgba(201,169,97,0.18);
+          background: rgba(20,18,16,0.72);
+          backdrop-filter: blur(18px) saturate(1.4);
+          -webkit-backdrop-filter: blur(18px) saturate(1.4);
+          transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+          box-shadow: 0 4px 32px rgba(0,0,0,0.32);
+        }
+        .nb-pill[data-scrolled] {
+          background: rgba(22,19,16,0.88);
+          border-color: rgba(201,169,97,0.28);
+          box-shadow: 0 8px 40px rgba(0,0,0,0.48);
+        }
+        .nb-logo {
+          font-family: 'Fraunces', serif;
+          font-size: 1.1rem;
+          font-weight: 400;
+          color: #f5f3ef;
+          text-decoration: none;
+          letter-spacing: -0.01em;
+          transition: color 0.3s;
+        }
+        .nb-logo:hover { color: #c9a961; }
+        .nb-logo-dash { color: #c9a961; }
+
+        /* Desktop links */
+        .nb-links {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          list-style: none;
+          margin: 0; padding: 0;
+        }
+        .nb-link {
+          padding: 0.4rem 1rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.625rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #a09880;
+          text-decoration: none;
+          border-radius: 9999px;
+          transition: color 0.3s, background 0.3s;
+        }
+        .nb-link:hover { color: #c9a961; background: rgba(201,169,97,0.08); }
+
+        /* CTA button */
+        .nb-cta {
+          padding: 0.4rem 1.1rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.625rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #f5f3ef;
+          text-decoration: none;
+          border-radius: 9999px;
+          border: 1px solid rgba(201,169,97,0.3);
+          transition: color 0.3s, border-color 0.3s, background 0.3s;
+        }
+        .nb-cta:hover { color: #c9a961; border-color: #c9a961; background: rgba(201,169,97,0.08); }
+
+        /* Hamburger — mobile only */
+        .nb-burger {
+          display: none;
+          flex-direction: column;
+          gap: 5px;
+          cursor: pointer;
+          padding: 4px;
+          background: none;
+          border: none;
+          pointer-events: auto;
+        }
+        .nb-burger span {
+          display: block;
+          width: 22px;
+          height: 1.5px;
+          background: #f5f3ef;
+          border-radius: 2px;
+          transition: transform 0.3s, opacity 0.3s;
+          transform-origin: center;
+        }
+        .nb-burger[data-open] span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+        .nb-burger[data-open] span:nth-child(2) { opacity: 0; }
+        .nb-burger[data-open] span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+        /* Mobile drawer */
+        .nb-drawer {
+          position: absolute;
+          top: calc(100% + 0.75rem);
+          left: 0; right: 0;
+          background: rgba(20,18,16,0.96);
+          border: 1px solid rgba(201,169,97,0.18);
+          border-radius: 1.25rem;
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          overflow: hidden;
+          max-height: 0;
+          opacity: 0;
+          transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s;
+          pointer-events: none;
+        }
+        .nb-drawer[data-open] {
+          max-height: 16rem;
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .nb-drawer-link {
+          display: block;
+          padding: 0.75rem 1rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.7rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #a09880;
+          text-decoration: none;
+          border-radius: 0.75rem;
+          transition: color 0.2s, background 0.2s;
+        }
+        .nb-drawer-link:hover { color: #c9a961; background: rgba(201,169,97,0.08); }
+        .nb-drawer-cta {
+          display: block;
+          padding: 0.75rem 1rem;
+          margin-top: 0.5rem;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.7rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #c9a961;
+          text-decoration: none;
+          border-radius: 0.75rem;
+          border: 1px solid rgba(201,169,97,0.3);
+          text-align: center;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .nb-drawer-cta:hover { background: rgba(201,169,97,0.1); border-color: #c9a961; }
+
+        @media (max-width: 767px) {
+          .nb-links, .nb-cta { display: none; }
+          .nb-burger { display: flex; }
+          .nb-root { top: 1rem; width: calc(100% - 2rem); }
+        }
+      `}</style>
+
+      <nav className="nb-root" aria-label="Main navigation">
+        <div
+          ref={drawerRef}
+          className="nb-pill"
+          data-scrolled={scrolled || undefined}
         >
-          <div className="flex items-center justify-between w-full px-8 py-3.5">
-            {/* Logo / name */}
+          <a href="#top" className="nb-logo">
+            {site.name}<span className="nb-logo-dash">—</span>
+          </a>
+
+          {/* Desktop nav */}
+          <ul className="nb-links">
+            {navLinks.map((l) => (
+              <li key={l.href}>
+                <a href={l.href} className="nb-link">{l.label}</a>
+              </li>
+            ))}
+          </ul>
+          <a href={`mailto:${site.email}`} className="nb-cta">Let's talk</a>
+
+          {/* Mobile hamburger */}
+          <button
+            className="nb-burger"
+            data-open={open || undefined}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <span /><span /><span />
+          </button>
+
+          {/* Mobile drawer */}
+          <div className="nb-drawer" data-open={open || undefined} aria-hidden={!open}>
+            {navLinks.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                className="nb-drawer-link"
+                onClick={() => setOpen(false)}
+              >
+                {l.label}
+              </a>
+            ))}
             <a
-              href="#top"
-              data-nav-item
-              className="font-display text-lg font-normal tracking-tight opacity-0 transition-colors duration-500 hover:text-gold text-ink-50"
+              href={`mailto:${site.email}`}
+              className="nb-drawer-cta"
+              onClick={() => setOpen(false)}
             >
-              {site.name}
-              <span className="text-gold ml-0.5">—</span>
+              Let's talk
             </a>
-
-            {/* Nav links — center */}
-            <ul className="flex items-center gap-1">
-              {navLinks.map((link) => (
-                <li key={link.href} data-nav-item className="opacity-0">
-                  <Magnetic strength={0.12}>
-                    <a
-                      href={link.href}
-                      className="px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-200 hover:text-gold transition-colors duration-500"
-                    >
-                      {link.label}
-                    </a>
-                  </Magnetic>
-                </li>
-              ))}
-            </ul>
-
-            {/* CTA — right */}
-            <div data-nav-item className="opacity-0">
-              <Magnetic strength={0.2}>
-                <a
-                  href={`mailto:${site.email}`}
-                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-ink-400/25 text-ink-100 font-mono text-[10px] uppercase tracking-[0.25em] hover:border-gold hover:text-gold transition-colors duration-500"
-                >
-                  Let's talk
-                </a>
-              </Magnetic>
-            </div>
           </div>
-        </GlassSurface>
-      </div>
-    </div>
+        </div>
+      </nav>
+    </>
   );
 }

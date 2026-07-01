@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -194,7 +193,7 @@ export const storageService = {
   /**
    * Upload image ke Supabase Storage
    * @param {File} file - File object dari input
-   * @param {'projects'|'certifications'} bucket - Sub-folder tujuan
+   * @param {'projects'|'certifications'|'profile'} folder - Sub-folder tujuan
    * @returns {string} Public URL gambar
    */
   async uploadImage(file, folder = 'projects') {
@@ -217,8 +216,35 @@ export const storageService = {
     return publicUrl;
   },
 
+  /**
+   * Upload profile picture — otomatis replace file lama dengan upsert
+   * @param {File} file - File gambar profile baru
+   * @returns {string} Public URL gambar profile
+   */
+  async uploadProfilePicture(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    // Pakai nama file fixed agar URL tidak berubah-ubah (cache bust via query)
+    const fileName = `profile/lanyard-profile.${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from('portfolio-assets')
+      .upload(fileName, file, {
+        cacheControl: '0',   // no cache agar foto baru langsung tampil
+        upsert: true,        // replace file lama
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('portfolio-assets')
+      .getPublicUrl(data.path);
+
+    // Tambah cache buster agar browser tidak pakai foto lama
+    return `${publicUrl}?t=${Date.now()}`;
+  },
+
   async deleteImage(url) {
-    const path = url.split('/portfolio-assets/')[1];
+    const path = url.split('/portfolio-assets/')[1]?.split('?')[0];
     if (!path) return;
     await supabase.storage.from('portfolio-assets').remove([path]);
   },
